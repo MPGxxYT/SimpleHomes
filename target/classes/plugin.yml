@@ -1,5 +1,5 @@
 name: SimpleHomes
-version: '1.0-SNAPSHOT'
+version: '1.0'
 main: me.mortaldev.simplehomes.SimpleHomes
 api-version: '1.20'
 authors: [TotallyNotMortality]
