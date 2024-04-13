@@ -94,15 +94,14 @@ public abstract class CommandHandler extends BukkitCommand implements CommandExe
             return true;
         }
 
-        if (delayedPlayers != null && sender instanceof Player) {
-            Player player = (Player) sender;
+        if (delayedPlayers != null && sender instanceof Player player) {
             if (delayedPlayers.contains(player.getName())) {
                 sender.sendMessage("§cPlease wait before using this command again.");
                 return true;
             }
 
             delayedPlayers.add(player.getName());
-            Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(), () -> delayedPlayers.remove(player.getName()), (long) delay);
+            Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(), () -> delayedPlayers.remove(player.getName()), delay);
         }
 
         if (!onCommand(sender, arguments)) {
@@ -122,5 +121,5 @@ public abstract class CommandHandler extends BukkitCommand implements CommandExe
     public abstract @NotNull String getUsage();
     public abstract String getPermission();
     public abstract @NotNull String getDescription();
-    public abstract @NotNull ArrayList<String> getAliases();
+    public abstract @NotNull List<String> getAliases();
 }

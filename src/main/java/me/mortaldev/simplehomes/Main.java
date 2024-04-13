@@ -1,6 +1,10 @@
 package me.mortaldev.simplehomes;
 
+import me.mortaldev.simplehomes.commands.HomeCommand;
+import me.mortaldev.simplehomes.configs.HomeConfig;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
 
 public final class Main extends JavaPlugin {
 
@@ -25,10 +29,10 @@ public final class Main extends JavaPlugin {
         if (!getDataFolder().exists()){
             getDataFolder().mkdir();
         }
+        new File(getDataFolder()+"/profiles/").mkdirs();
 
         // CONFIGS
-//        WildConfig.loadConfig(true);
-//        MainConfig.loadConfig(true);
+        HomeConfig.loadConfig(true);
 
 
         // Events
@@ -38,9 +42,7 @@ public final class Main extends JavaPlugin {
 
         // COMMANDS
 
-//        new CafeBaseCommand();
-//        new WildCommand();
-//        new SpawnCommand();
+        new HomeCommand();
 
         getLogger().info(label + " Enabled");
 
