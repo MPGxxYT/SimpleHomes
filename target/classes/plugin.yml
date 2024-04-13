@@ -1,0 +1,6 @@
+name: SimpleHomes
+version: '1.0-SNAPSHOT'
+main: me.mortaldev.simplehomes.SimpleHomes
+api-version: '1.20'
+authors: [TotallyNotMortality]
+description: 'A simple homes plugin with configurability.'

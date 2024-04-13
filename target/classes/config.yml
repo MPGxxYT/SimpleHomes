@@ -1,0 +1,32 @@
+
+# Any worlds you ONLY want people putting worlds in
+# Leave it empty if you don't want to use it.
+# You cannot use this while also using blacklist.
+whitelistedWorlds:
+  - world
+  - world_nether
+  - world_the_end
+
+
+# Any worlds you don't want people setting homes in.
+# Leave it empty if you don't want to use it.
+blacklistedWorlds:
+
+
+# Set to -1 for no limit.
+defaultMaxHomes: 3
+
+# Time in milliseconds before the player can teleport again.
+# Set to 0 for no delay.
+teleportDelay: 1000
+
+# The prefix for the messages sent to players.
+# Leave empty for no prefix.
+# You can use color codes and hexcodes.
+#ex. '&f[&#4ac1cf&lSimpleHomes&f] '
+messagePrefix: '&f[&#4ac1cf&lSimpleHomes&f] '
+
+# The colors for messages.
+primaryColor: '&6'
+secondaryColor: '&f'
+tertiaryColor: '&7'
