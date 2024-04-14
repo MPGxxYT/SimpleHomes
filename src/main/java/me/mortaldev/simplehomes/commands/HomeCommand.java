@@ -42,23 +42,23 @@ public class HomeCommand {
         }
     }
 
-    // /home <name> - Teleport to your home.
-    // ~ simplehomes.basic / simplehomes.tp
-    //
-    // /home help - Display all the commands
-    // ~ simplehomes.basic / simplehomes.help
-    //
-    // /home set/add <name> - Set a home to your location.
-    // ~ simplehomes.basic / simplehomes.set
-    //
-    // /home del/remove <name> - Remove a home
-    // ~ simplehomes.basic / simplehomes.del
-    //
-    // /home list - List your current homes
-    // ~ simplehomes.basic / simplehomes.list
-    //
-    // /home reload (admin command) - Reload the config
-    // ~ * / simplehomes.admin / simplehomes.reload
+//     /home <name> - Teleport to your home.
+//     ~ simplehomes.basic / simplehomes.tp
+//
+//     /home help - Display all the commands
+//     ~ simplehomes.basic / simplehomes.help
+//
+//     /home set/add <name> - Set a home to your location.
+//     ~ simplehomes.basic / simplehomes.set
+//
+//     /home del/remove <name> - Remove a home
+//     ~ simplehomes.basic / simplehomes.del
+//
+//     /home list - List your current homes
+//     ~ simplehomes.basic / simplehomes.list
+//
+//     /home reload (admin command) - Reload the config
+//     ~ * / simplehomes.admin / simplehomes.reload
 
     public HomeCommand() {
         cooldown = new Cooldown();
