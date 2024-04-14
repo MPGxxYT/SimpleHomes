@@ -42,7 +42,10 @@ public class Profile {
 
     public static Profile getProfile(UUID uuid){
         var file = new File(Main.getPlugin().getDataFolder().getAbsolutePath() + "/profiles/" + uuid.toString() + ".json");
-        return (Profile) Storage.getJsonObject(file, Profile.class);
+        if (!file.exists()){
+            return new Profile(uuid).saveToStorage();
+        }
+        return Storage.getJsonObject(file, Profile.class);
     }
 
     public Home getHome(String homeName) {
@@ -54,25 +57,24 @@ public class Profile {
         return null;
     }
 
-    public Boolean addHome(Home home) {
+    public void addHome(Home home) {
         homeList.add(home);
         saveToStorage();
-        return true;
     }
 
-    public Boolean delHome(Home home) {
+    public void delHome(Home home) {
         homeList.remove(home);
         saveToStorage();
-        return true;
     }
 
     public Integer getMaxHomes() {
         return maxHomes;
     }
 
-    void saveToStorage(){
+    Profile saveToStorage(){
         var file = new File(Main.getPlugin().getDataFolder().getAbsolutePath() + "/profiles/" + uuid.toString() + ".json");
         Storage.saveJsonObject(file, this);
+        return this;
     }
 
 }

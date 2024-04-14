@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="Build">
-    <output-path>$PROJECT_DIR$/out/artifacts/Build</output-path>
+    <output-path>$USER_HOME$/Downloads/Installations/mcss_win-x86-64_v13.5.0/servers/PluginTesting/plugins</output-path>
     <root id="archive" name="SimpleHomes.jar">
       <element id="module-output" name="SimpleHomes" />
       <element id="dir-copy" path="$PROJECT_DIR$/src/main/resources" />

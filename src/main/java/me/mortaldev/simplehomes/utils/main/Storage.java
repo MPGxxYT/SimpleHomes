@@ -18,17 +18,15 @@ public class Storage {
 
     //Storage.saveJsonObject(Storage.defaultFile("test"), testClass);
 
-    public static Object getJsonObject(File file, Object object){
+    public static <T> T getJsonObject(File file, Class<T> clazz){
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
         if (!file.exists()){
             return null;
         }
+
         try (Reader reader = new FileReader(file)){
-            Object object1 = gson.fromJson(reader, Object.class);
-            if (object1 == null) {
-                return null;
-            }
-            return object1;
+            return gson.fromJson(reader, clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -37,12 +35,12 @@ public class Storage {
     public static void saveJsonObject(File file, Object object){
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         try {
-            file.getParentFile().mkdir();
+            file.getParentFile().mkdirs(); // Use mkdirs() instead of mkdir(), it will create all necessary parent directories.
             file.createNewFile();
-            Writer writer = new FileWriter(file, false);
-            gson.toJson(object, writer);
-            writer.flush();
-            writer.close();
+            try (Writer writer = new FileWriter(file, false)) {
+                gson.toJson(object, writer);
+                writer.flush();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

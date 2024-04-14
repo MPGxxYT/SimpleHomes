@@ -8,28 +8,38 @@ import me.mortaldev.simplehomes.utils.main.Cooldown;
 import me.mortaldev.simplehomes.utils.main.TextFormat;
 import me.mortaldev.simplehomes.utils.main.Utils;
 import net.kyori.adventure.text.Component;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class HomeCommand {
 
     Cooldown cooldown;
     Long teleportDelay;
+    UUID variableID;
+    List<World> whitelistedWorlds;
+    List<World> blacklistedWorlds;
     String messagePrefix;
     String primaryColor;
     String secondaryColor;
     String tertiaryColor;
 
     public void loadVariables(){
-        teleportDelay = HomeConfig.getTeleportDelay();
-        messagePrefix = HomeConfig.getMessagePrefix();
-        primaryColor = HomeConfig.getPrimaryColor();
-        secondaryColor = HomeConfig.getSecondaryColor();
-        tertiaryColor = HomeConfig.getTertiaryColor();
+        if (variableID != HomeConfig.getVariableID()){
+            variableID = HomeConfig.getVariableID();
+            whitelistedWorlds = HomeConfig.getWhitelistedWorlds();
+            blacklistedWorlds = HomeConfig.getBlacklistedWorlds();
+            teleportDelay = HomeConfig.getTeleportDelay();
+            messagePrefix = HomeConfig.getMessagePrefix();
+            primaryColor = HomeConfig.getPrimaryColor();
+            secondaryColor = HomeConfig.getSecondaryColor();
+            tertiaryColor = HomeConfig.getTertiaryColor();
+        }
     }
 
     // /home <name> - Teleport to your home.
@@ -51,6 +61,7 @@ public class HomeCommand {
     // ~ * / simplehomes.admin / simplehomes.reload
 
     public HomeCommand() {
+        cooldown = new Cooldown();
         new CommandHandler("home", -1, true) {
             @Override
             public boolean onCommand(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -67,17 +78,18 @@ public class HomeCommand {
                             if (Utils.hasAnyPermission(player, "*", "simplehomes.admin", "simplehomes.reload")) {
                                 player.sendMessage(HomeConfig.loadConfig(true));
                             }
-                        } else if (!(args[0].equalsIgnoreCase("set")
-                                || args[0].equalsIgnoreCase("add")
-                                || args[0].equalsIgnoreCase("del")
-                                || args[0].equalsIgnoreCase("remove"))){
+                        } else if ((args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("add" ))){
+                            player.sendMessage(TextFormat.format(messagePrefix+"Provide a name to set the home to."));
+                        } else if ((args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("delete"))){
+                            player.sendMessage(TextFormat.format(messagePrefix+"Provide the name of the home to delete."));
+                        } else {
                             teleportHome(player, args[0]);
                         }
                     }
                     case 2 -> {
                         if (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("add")){
                             addHome(player, args[1]);
-                        } else if (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove")){
+                        } else if (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("remove")  || args[0].equalsIgnoreCase("delete")){
                             delHome(player, args[1]);
                         }
                     }
@@ -87,7 +99,31 @@ public class HomeCommand {
 
             @Override
             public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) {
-                return new ArrayList<>();
+                Player player = (Player) sender;
+                List<String> returnList = new ArrayList<>();
+                if (args.length == 1) {
+                    returnList.add("help");
+                    returnList.add("list");
+                    returnList.add("set");
+                    returnList.add("del");
+                    if (Utils.hasAnyPermission(player, "*", "simplehomes.admin", "simplehomes.reload")) {
+                        returnList.add("reload");
+                    }
+                    Profile profile = Profile.getProfile((player.getUniqueId()));
+                    for (Home home : profile.getHomeList()) {
+                        returnList.add(home.getName());
+                    }
+                    return returnList;
+                }
+                if (args.length == 2) {
+                    if (args[0].equalsIgnoreCase("del")) {
+                        Profile profile = Profile.getProfile((player.getUniqueId()));
+                        for (Home home : profile.getHomeList()) {
+                            returnList.add(home.getName());
+                        }
+                    }
+                }
+                return returnList;
             }
 
             @Override
@@ -121,11 +157,11 @@ public class HomeCommand {
         for (Home home : profile.getHomeList()) {
             if (home.getName().equalsIgnoreCase(homeName)) {
                 profile.delHome(home);
-                player.sendMessage(TextFormat.format(messagePrefix + "Home has been deleted"));
+                player.sendMessage(TextFormat.format(messagePrefix + "Home "+primaryColor+home.getName()+"&f has been deleted"));
                 return;
             }
         }
-        player.sendMessage(TextFormat.format(messagePrefix + "Home doesn't exist."));
+        player.sendMessage(TextFormat.format(messagePrefix + "Home "+primaryColor+homeName+"&f doesn't exist."));
     }
 
     private void addHome(Player player, String homeName) {
@@ -133,15 +169,19 @@ public class HomeCommand {
             player.sendMessage(TextFormat.format(messagePrefix+"You do not have permission."));
             return;
         }
+        if ((!whitelistedWorlds.contains(player.getWorld()) && !whitelistedWorlds.isEmpty()) || blacklistedWorlds.contains(player.getWorld())) {
+            player.sendMessage(TextFormat.format(messagePrefix+"You cannot set a home in this world."));
+            return;
+        }
         Profile profile = Profile.getProfile(player.getUniqueId());
         for (Home home : profile.getHomeList()) {
             if (home.getName().equalsIgnoreCase(homeName)) {
-                player.sendMessage(TextFormat.format(messagePrefix+"Home already exists."));
+                player.sendMessage(TextFormat.format(messagePrefix+"Home "+primaryColor+home.getName()+"&f already exists."));
                 return;
             }
         }
         profile.addHome(new Home(homeName, player.getLocation()));
-        player.sendMessage(TextFormat.format(messagePrefix+"Home has been created"));
+        player.sendMessage(TextFormat.format(messagePrefix+"Home "+primaryColor+homeName+"&f has been created"));
     }
 
     private void teleportHome(Player player, String homeName) {
@@ -149,21 +189,21 @@ public class HomeCommand {
             player.sendMessage(TextFormat.format(messagePrefix+"You do not have permission."));
             return;
         }
-        if (!cooldown.isDone(player.getUniqueId())) {
-            var timeLeft = cooldown.getTimeLeft(player.getUniqueId());
-            player.sendMessage(TextFormat.format(messagePrefix+"You must wait "+timeLeft+" seconds to do this again."));
-            return;
-        }
-        cooldown.start(player.getUniqueId(), teleportDelay);
         Profile profile = Profile.getProfile(player.getUniqueId());
         for (Home home : profile.getHomeList()) {
             if (home.getName().equalsIgnoreCase(homeName)) {
+                if (!cooldown.isDone(player.getUniqueId())) {
+                    var timeLeft = cooldown.getTimeLeft(player.getUniqueId());
+                    player.sendMessage(TextFormat.format(messagePrefix+"You must wait "+primaryColor+timeLeft+"&f seconds to do this again."));
+                    return;
+                }
+                cooldown.start(player.getUniqueId(), teleportDelay);
                 player.teleport(home.getLocation());
-                player.sendMessage(TextFormat.format(messagePrefix+"You have been teleported!"));
+                player.sendMessage(TextFormat.format(messagePrefix+"You have been teleported to "+primaryColor+home.getName()+"&f!"));
                 return;
             }
         }
-        player.sendMessage(TextFormat.format(messagePrefix+"Home does not exist."));
+        player.sendMessage(TextFormat.format(messagePrefix+"Home "+primaryColor+homeName+"&f does not exist."));
     }
 
     private void listHomes(Player player) {
@@ -172,14 +212,23 @@ public class HomeCommand {
             return;
         }
         Profile profile = Profile.getProfile(player.getUniqueId());
+        var homeList = profile.getHomeList();
+        if (homeList.isEmpty()) {
+            player.sendMessage(TextFormat.format(messagePrefix+"You have no homes."));
+            return;
+        }
+        player.sendMessage(TextFormat.format(secondaryColor+"---------- "+primaryColor+"&lYour Homes "+secondaryColor+"----------"));
+        player.sendMessage("");
         for (Home home : profile.getHomeList()) {
             // &6Base##ttp:&7Teleport to Base##cmd:/home Base## ##&f[&6delete&f]##ttp:&7Delete Base##cmd:/home del Base
-            player.sendMessage(TextFormat.format(primaryColor+home.getName() +
-                    "##ttp:" + tertiaryColor + "Teleport to " + home.getName() + "##cmd:/home " + home.getName() + "## ##" +
-                    secondaryColor + "[" + primaryColor + "delete" + secondaryColor + "]" +
+            player.sendMessage(TextFormat.format(secondaryColor+" - "+primaryColor+"&l"+home.getName() +
+                    "##ttp:" + tertiaryColor + "Teleport to " + home.getName() + "##cmd:/home " + home.getName() + "##              ##" +
+                    secondaryColor + "[" + primaryColor + "DELETE" + secondaryColor + "]" +
                     "##ttp:"+ tertiaryColor + "Delete " + home.getName() + "##cmd:/home del " + home.getName(),
                     true));
         }
+        player.sendMessage("");
+        player.sendMessage(TextFormat.format(secondaryColor+"---------------------------------"));
     }
 
     void help(Player player){
@@ -211,7 +260,7 @@ public class HomeCommand {
                         "##sgt:/home reload", true));
             }
             add(TextFormat.format(""));
-            add(TextFormat.format(secondaryColor+"------------------------------"));
+            add(TextFormat.format(secondaryColor+"--------------------------------"));
         }};
         for (Component component : messageList) {
             player.sendMessage(component);

@@ -7,9 +7,11 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class HomeConfig {
     static FileConfiguration config;
+    static UUID variableID;
     static List<World> whitelistedWorlds;
     static List<World> blacklistedWorlds;
     static Integer defaultMaxHomes = 3;
@@ -50,6 +52,7 @@ public class HomeConfig {
     public static String loadConfig(Boolean updateConfig){
         if (updateConfig){ // if we're updating the config, then update it
             config = YamlConfig.getConfig("config");
+            variableID = UUID.randomUUID();
         }
         boolean update = false;
         // get the whitelisted worlds
@@ -123,5 +126,9 @@ public class HomeConfig {
 
     public static String getTertiaryColor() {
         return tertiaryColor;
+    }
+
+    public static UUID getVariableID() {
+        return variableID;
     }
 }
