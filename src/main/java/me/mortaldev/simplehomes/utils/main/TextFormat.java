@@ -1,5 +1,6 @@
 package me.mortaldev.simplehomes.utils.main;
 
+import me.mortaldev.simplehomes.utils.records.Pair;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
@@ -37,10 +38,6 @@ public class TextFormat {
     // Welcome Home##My love!##sgt:/home ##ttp:Click Here
     // [EXTRA TEXT ] [ INPUT] [PAR][ARG  ] [PAR][   ARG  ]
     //             ||        ||          ||
-    //
-    // INPUT: /home <home> - Teleport to your home.
-    // PARAM: "sgt:" arg = "/home "
-    // PARAM: "ttp:" arg = ":Click to select /home"
 
     /**
      * Splits the given string by "##" and formats it according to the specified tags and values.
@@ -49,53 +46,99 @@ public class TextFormat {
      * @return the formatted string
      */
     public static String asParam(String str) {
-        // Splits the string by "##"
+        if (str == null) { throw new IllegalArgumentException("Input string cannot be null."); }
+
+        // Holds the split strings and their associated tags and values.
+        HashMap<Integer, Pair<String, String>> clusters = new HashMap<>();
+        // Get all the keys from Types enum
+        List<String> keys = Arrays.stream(Types.getKeys()).toList();
+
+        // Split the string on '##'.
         String[] split = str.split("##");
-        // Gets the types of tags
-        Types[] types = Types.values();
 
-        // Then gets the keys of the tags, which are used to identify the type of tag.
-        String[] keys = Types.getKeys();
-        HashMap<Integer, AbstractMap.SimpleEntry<String, String>> clusters = new HashMap<>();
-
+        // Loop over the split string.
         for (int i = 0; i < split.length; i++) {
-            String v = split[i];
-            String tag = "";
-            String value = "";
-            if (split[i].length() >= 4){
-                tag = split[i].substring(0, 4);
-                value = split[i].substring(4);
-            }
-
-            if (keys.contains(tag)){
-                clusters.put(i, new AbstractMap.SimpleEntry<>(tag, value));
-            } else {
-                clusters.put(i, new AbstractMap.SimpleEntry<>("text", v));
-            }
-        } // THIS IS BEING REFACTORED, DO NOT USE
-
-        String past_text = "";
-        ArrayList<String> out = new ArrayList<>();
-        for (Map.Entry<Integer, AbstractMap.SimpleEntry<String, String>> entry : clusters.entrySet()){
-            int i = entry.getKey();
-            String text = entry.getValue().getValue();
-            String tag = entry.getValue().getKey();
-
-            if (Objects.equals(tag, "text")){
-                if (!past_text.isEmpty()){
-                    out.add(past_text);
-                }
-                past_text = text;
-            } else {
-                String value = types.get(tag);
-                past_text = value.replace("#arg#", text).replace("#input#", past_text);
-            }
-            if (clusters.size() == i+1){
-                out.add(past_text);
-            }
+            // Fill the clusters with appropriate entries.
+            addToClusters(i, split[i], keys, clusters);
         }
+
+        // Used to build up the output string.
+        String past_text = "";
+        // The final output string list.
+        List<String> out = new ArrayList<>();
+
+        // Process all entries in the clusters map.
+        for (Map.Entry<Integer, Pair<String, String>> entry : clusters.entrySet()) {
+            // Grabs the text from the clusters according to the protocol.
+            past_text = processClusterEntry(entry, past_text, clusters, out);
+        }
+
+        // Join all the strings in `out` together and return the result.
         return String.join("", out);
     }
+
+    // Helper function to fill the clusters with appropriate entries.
+    private static void addToClusters(int index, String str, List<String> keys, HashMap<Integer, Pair<String, String>> clusters) {
+        String tag = "";
+        String value = "";
+        // If the string is at least 4 characters long
+        if (str != null && str.length() >= 4){
+            // Grab the tag and value from the string
+            tag = str.substring(0, 4);
+            value = str.substring(4);
+        }
+        // Put the entry in the clusters. If tag exists, use the tag and value, otherwise use "text" as the tag
+        if (keys.contains(tag)){
+            clusters.put(index, new Pair<>(tag, value));
+        } else {
+            clusters.put(index, new Pair<>("text", str != null ? str : ""));
+        }
+    }
+
+    // Processes a single cluster entry.
+    private static String processClusterEntry(Map.Entry<Integer, Pair<String, String>> entry, String past_text, HashMap<Integer, Pair<String, String>> clusters, List<String> out) {
+        int index = entry.getKey();
+        String tag = getValueFromEntry(entry, 'k');
+        String v = getValueFromEntry(entry, 'v');
+
+        // If the tag is "text", just build up the past_text.
+        // If not, do the replacement according to the Types value.
+        if (Objects.equals(tag, "text")){
+            if (!past_text.isEmpty()){
+                out.add(past_text);
+            }
+            past_text = v;
+        } else {
+            past_text = performTypeValueReplacement(tag, v, past_text);
+        }
+
+        // If this the last cluster, append `past_text` to `out`.
+        if (clusters.size() == index+1){
+            out.add(past_text);
+        }
+
+        return past_text;
+    }
+
+    // Helper function to get value from map entry's key or value.
+    private static String getValueFromEntry(Map.Entry<Integer, Pair<String, String>> entry, char keyOrValue) {
+        // If keyOrValue is 'k', get the key; otherwise, get the value.
+        return keyOrValue == 'k' ? entry.getValue().first() : entry.getValue().second();
+    }
+
+    // Helper function to perform replacement based on the Types value.
+    private static String performTypeValueReplacement(String tag, String value, String past_text) {
+        // Retrieve the value associated with `tag` from the Types.
+        String typeValue = "";
+        if (Types.getTypeFromKey(tag) != null) {
+            typeValue = Types.getTypeFromKey(tag).value;
+        }
+        // Perform replacement on `typeValue` and assign it to `past_text`.
+        return typeValue
+                .replace("#arg#", value)
+                .replace("#input#", past_text);
+    }
+
 
     /**
      * Converts a given string to a formatted string using MiniMessage format tags based on provided options.
@@ -153,25 +196,6 @@ public class TextFormat {
         // Convert the final StringBuilder to a String and return it
         return stringBuilder.toString();
     }
-
-    /**
-     * Replaces all occurrences of a specified string with another string in a StringBuilder.
-     *
-     * @param sb the StringBuilder in which the replacements should be made
-     * @param from the string to be replaced
-     * @param to the replacement string
-     */
-    public static void replaceAll(StringBuilder sb, String from, String to) {
-        int index = sb.indexOf(from);
-        while (index != -1) {
-            sb.replace(index, index + from.length(), to);
-            index += to.length(); // Move to the end of the replacement
-            index = sb.indexOf(from, index);
-        }
-    }
-
-
-    // Copy me!##cpy:My mom##ttp:&7Your mom?##Idkk
 
     public enum Types {
         // CLICK ACTIONS
@@ -248,6 +272,15 @@ public class TextFormat {
                 keys.add(types.getKey());
             }
             return keys.toArray(new String[0]);
+        }
+
+        public static Types getTypeFromKey(String string){
+            for (Types value : values()) {
+                if (value.getKey().equals(string)){
+                    return value;
+                }
+            }
+            return null;
         }
 
         public String getValue() {
