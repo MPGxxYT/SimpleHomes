@@ -21,6 +21,16 @@ public class HomeConfig {
     static String secondaryColor = "&f";
     static String tertiaryColor = "&7";
 
+    /**
+     * Retrieves a list of worlds based on the given string list of world names.
+     * If a world name contains whitespace, it is modified by removing leading and trailing whitespace
+     * and replacing any whitespace in between with a single underscore.
+     * Worlds that do not exist are logged as warnings and excluded from the resulting list.
+     * The provided string list is updated with the modified world names and saved to the config file if any changes are made.
+     *
+     * @param stringList the list of string world names
+     * @return a list of World objects representing the existing worlds
+     */
     public static List<World> getWorldsList(List<String> stringList){
         boolean update = false; // Boolean for updating config incase of errors.
         List<World> worldsList = new ArrayList<>();
