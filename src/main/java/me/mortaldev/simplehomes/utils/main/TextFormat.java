@@ -2,19 +2,33 @@ package me.mortaldev.simplehomes.utils.main;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TextFormat {
 
+    /**
+     * Formats the given string using MiniMessage format tags and returns it as a Component object.
+     *
+     * @param str the string to be formatted
+     * @return the formatted string as a Component object
+     */
     public static Component format(String str){
         String result = asString(str, false);
         result = asParam(result);
         return MiniMessage.miniMessage().deserialize(result);
     }
 
-    public static Component format(String str, Boolean disableReset){
+    /**
+     * Formats the given string using MiniMessage format tags and returns it as a Component object.
+     *
+     * @param str the string to be formatted
+     * @param disableReset whether to disable the reset tag or not
+     * @return the formatted string as a Component object
+     */
+    public static Component format(String str, boolean disableReset){
         String result = asString(str, disableReset);
         result = asParam(result);
         return MiniMessage.miniMessage().deserialize(result);
@@ -28,10 +42,20 @@ public class TextFormat {
     // PARAM: "sgt:" arg = "/home "
     // PARAM: "ttp:" arg = ":Click to select /home"
 
+    /**
+     * Splits the given string by "##" and formats it according to the specified tags and values.
+     *
+     * @param str the string to be formatted
+     * @return the formatted string
+     */
     public static String asParam(String str) {
+        // Splits the string by "##"
         String[] split = str.split("##");
-        HashMap<String, String> types = getTypes();
-        Set<String> keys = types.keySet();
+        // Gets the types of tags
+        Types[] types = Types.values();
+
+        // Then gets the keys of the tags, which are used to identify the type of tag.
+        String[] keys = Types.getKeys();
         HashMap<Integer, AbstractMap.SimpleEntry<String, String>> clusters = new HashMap<>();
 
         for (int i = 0; i < split.length; i++) {
@@ -48,7 +72,7 @@ public class TextFormat {
             } else {
                 clusters.put(i, new AbstractMap.SimpleEntry<>("text", v));
             }
-        }
+        } // THIS IS BEING REFACTORED, DO NOT USE
 
         String past_text = "";
         ArrayList<String> out = new ArrayList<>();
@@ -73,135 +97,240 @@ public class TextFormat {
         return String.join("", out);
     }
 
-    public static String asString(String str, Boolean disableReset){
-        // &f replaced with <white>
-        // &l replaced with <bold>
-        // &r replaced with <reset> ect
-        // &#ffffff to <#ffffff>
-        str = str.replace("&nl", "<newline>");
-        if (str.contains("&#")){ // Replacing hex tags
-            ArrayList<String> rep = new ArrayList<>();
-            char[] split = str.toCharArray();
-            for (int i = 0; i < split.length; i++) {
-                if (split[i] == '&' && split[i+1] == '#'){
-                    rep.add(str.substring(i+2, i+8));
-                }
-            }
-            for (String i : rep){
-                str = str.replace("&#" + i, "<#" + i + ">");
-            }
+    /**
+     * Converts a given string to a formatted string using MiniMessage format tags based on provided options.
+     * Replaces instances of "&nl" with "<newline>".
+     * Replaces hexadecimal HTML character references with the corresponding format.
+     * Replaces color tags with the corresponding format from the Colors enum.
+     * Replaces decoration tags with the corresponding format from the Decorations enum.
+     *
+     * @param str the string to be formatted
+     * @param disableReset whether to disable the reset tag or not
+     * @return the formatted string
+     */
+    public static String asString(String str, boolean disableReset){
+        // Create a StringBuilder from the input string for efficient string manipulation
+        StringBuilder stringBuilder = new StringBuilder(str);
+
+        // Replace all instances of "&nl" with "<newline>"
+        stringBuilder.replace(0, stringBuilder.length(),
+                stringBuilder.toString().replace("&nl", "<newline>"));
+
+        // Define a regular expression pattern to match hexadecimal HTML character references
+        Pattern hexPattern = Pattern.compile("&#(.{6})");
+        // Create a Matcher object with the input string.
+        Matcher hexMatcher = hexPattern.matcher(str);
+
+        // Find each occurrence of the pattern in the input string
+        while (hexMatcher.find()){
+            // Extract the hexadecimal code from the Matcher
+            String hexCode = hexMatcher.group(1);
+            // Replace the matched hexadecimal HTML character reference with the desired format
+            stringBuilder.replace(0, stringBuilder.length(),
+                    stringBuilder.toString().replace("&#" + hexCode, "<#" + hexCode + ">"));
         }
-        for (Map.Entry<String, String> entry : getColors().entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            if (disableReset){
-                str = str.replace("&" + key, "<" + value + ">");
-            } else {
-                str = str.replace("&" + key, "<reset><" + value + ">");
-            }
+
+        // For each possible color in the Colors enum
+        for (Colors color : Colors.values()) {
+            // Define the key and value to be used in the replacement
+            String key = "&" + color.getKey();
+            String value = disableReset ?
+                    "<" + color.getValue() + ">" :    // if disableReset is true, don't insert a reset
+                    "<reset><" + color.getValue() + ">";  // if disableReset is false, insert a reset before the color
+            // Replace the key with the value in the StringBuilder
+            stringBuilder.replace(0, stringBuilder.length(),
+                    stringBuilder.toString().replace(key, value));
         }
-        for (Map.Entry<String, String> entry : getDecorations().entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            str = str.replace("&" + key, "<" + value + ">");
+
+        // Follow similar steps for each possible decoration in the Decorations enum
+        for (Decorations decoration : Decorations.values()) {
+            String key = "&" + decoration.getKey();
+            String value = "<" + decoration.getValue() + ">";
+            stringBuilder.replace(0, stringBuilder.length(),
+                    stringBuilder.toString().replace(key, value));
         }
-        return str;
+
+        // Convert the final StringBuilder to a String and return it
+        return stringBuilder.toString();
+    }
+
+    /**
+     * Replaces all occurrences of a specified string with another string in a StringBuilder.
+     *
+     * @param sb the StringBuilder in which the replacements should be made
+     * @param from the string to be replaced
+     * @param to the replacement string
+     */
+    public static void replaceAll(StringBuilder sb, String from, String to) {
+        int index = sb.indexOf(from);
+        while (index != -1) {
+            sb.replace(index, index + from.length(), to);
+            index += to.length(); // Move to the end of the replacement
+            index = sb.indexOf(from, index);
+        }
     }
 
 
     // Copy me!##cpy:My mom##ttp:&7Your mom?##Idkk
-    @NotNull
-    private static HashMap<String, String> getTypes() {
-        HashMap<String, String> types = new HashMap<>();
-        // Click Actions
-        types.put("pge:", "<click:change_page:'#arg#'>#input#</click>");
-        types.put("cpy:", "<click:copy_to_clipboard:'#arg#'>#input#</click>");
-        types.put("fle:", "<click:open_file:'#arg#'>#input#</click>");
-        types.put("url:", "<click:open_url:'#arg#'>#input#</click>");
-        types.put("cmd:", "<click:run_command:'#arg#'>#input#</click>");
-        types.put("sgt:", "<click:suggest_command:'#arg#'>#input#</click>");
 
-        // Hover
-        types.put("ent:", "<hover:show_entity:'#arg#'>#input#</hover>");
-        types.put("itm:", "<hover:show_item:'#arg#'>#input#</hover>");
-        types.put("ttp:", "<hover:show_text:'#arg#'>#input#</hover>");
+    public enum Types {
+        // CLICK ACTIONS
+        CHANGE_PAGE("pge:", "<click:change_page:'#arg#'>#input#</click>"),
+        COPY_TO_CLIPBOARD("cpy:", "<click:copy_to_clipboard:'#arg#'>#input#</click>"),
+        OPEN_FILE("fle:", "<click:open_file:'#arg#'>#input#</click>"),
+        OPEN_PAGE("url:", "<click:open_url:'#arg#'>#input#</click>"),
+        RUN_COMMAND("cmd:", "<click:run_command:'#arg#'>#input#</click>"),
+        SUGGEST_COMMAND("sgt:", "<click:suggest_command:'#arg#'>#input#</click>"),
+
+        // HOVER
+        SHOW_ENTITY("ent:", "<hover:show_entity:'#arg#'>#input#</hover>"),
+        SHOW_ITEM("itm:", "<hover:show_item:'#arg#'>#input#</hover>"),
+        SHOW_TEXT("ttp:", "<hover:show_text:'#arg#'>#input#</hover>"),
 
         // KEYBIND
-        types.put("key:", "#input#<key:#arg#>");
+        KEY("key:", "#input#<key:#arg#>"),
 
-        // TRANSLATE (be weary of accidental params)
+        // TRANSLATE
         // ex. ##lng:block.minecraft.diamond_block
         // ex. ##lng:commands.drop.success.single:'<red>1':'<blue>Stone'
-        types.put("lng:", "#input#<lang:#arg#>");
+        LANG("lng:", "#input#<lang:#arg#>"),
 
         // INSERT
-        types.put("ins:", "<insert:'#arg#'>#input#</insert>");
+        INSERT("ins:", "<insert:'#arg#'>#input#</insert>"),
 
         // RAINBOW
         // COLORS##rnb:##no colors
-        types.put("rnb:", "<rainbow>#input#</rainbow>");
+        RAINBOW("rnb:", "<rainbow>#input#</rainbow>"),
 
-        // GRADIENT
+        //GRADIENT
         // colored##grd:#5e4fa2:#f79459##not colored
         // colored##grd:#5e4fa2:#f79459:red##not colored
         // colored##grd:green:blue##not colored
-        types.put("grd:", "<gradient:#arg#>#input#</gradient>");
+        GRADIENT("grd:", "<gradient:#arg#>#input#</gradient>"),
 
         // TRANSITION
         // colored##trn:[color1]:[color...]:[phase]##not colored
         // colored##trn:#00ff00:#ff0000:0##not colored
-        types.put("trn:", "<transition:#arg#>#input#</transition>");
+        TRANSITION("trn:", "<transition:#arg#>#input#</transition>"),
 
         // FONT
-        types.put("fnt:", "<font:#arg#>#input#</font>");
-
+        FONT("fnt:", "<font:#arg#>#input#</font>"),
 
         // SELECTOR
         // Hello ##slt:@e[limit=5]##, I'm ##slt:@s##!
-        types.put("slt:", "#input#<selector:#arg#>");
+        SELECTOR("slt:", "#input#<selector:#arg#>"),
 
         // SCORE
         // ##score:_name_:_objective_##
         // You have won ##scr:rymiel:gamesWon/## games!
-        types.put("scr:", "#input#<score:#arg#>");
+        SCORE("scr:", "#input#<score:#arg#>"),
 
         // NBT
         // ##nbt:block|entity|storage:id:path[:_separator_][:interpret]##
         // Your health is ##nbt:entity:'@s':Health/##
-        types.put("nbt:", "#input#<nbt:#arg#>");
-        return types;
+        NBT("nbt:", "#input#<nbt:#arg#>");
+
+        private final String key;
+        private final String value;
+
+        Types(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public static String[] getKeys() {
+            List<String> keys = new ArrayList<>();
+            for (Types types : Types.values()) {
+                keys.add(types.getKey());
+            }
+            return keys.toArray(new String[0]);
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
-    private static HashMap<String, String> getDecorations(){
-        HashMap<String, String> decorations = new HashMap<>();
-        decorations.put("l", "b");
-        decorations.put("o", "em"); // &l = <b>
-        decorations.put("n", "u");
-        decorations.put("m", "st");
-        decorations.put("k", "obf");
-        decorations.put("r", "reset");
-        return decorations;
+    public enum Decorations {
+
+        BOLD("l", "b"),
+        ITALIC("o", "em"),
+        UNDERLINE("n", "u"),
+        STRIKETHROUGH("m", "st"),
+        OBFUSCATED("k", "obf"),
+        RESET("r", "reset");
+
+        private final String key;
+        private final String value;
+
+        Decorations(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public static String[] getKeys() {
+            List<String> keys = new ArrayList<>();
+            for (Types types : Types.values()) {
+                keys.add(types.getKey());
+            }
+            return keys.toArray(new String[0]);
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 
-    @NotNull
-    private static HashMap<String, String> getColors() {
-        HashMap<String, String> colors = new HashMap<>();
-        colors.put("0", "black");
-        colors.put("1", "dark_blue");
-        colors.put("2", "dark_green");
-        colors.put("3", "dark_aqua");
-        colors.put("4", "dark_red");
-        colors.put("5", "dark_purple");
-        colors.put("6", "gold");
-        colors.put("7", "gray");
-        colors.put("8", "dark_gray");
-        colors.put("9", "blue");
-        colors.put("a", "green");
-        colors.put("b", "aqua");
-        colors.put("c", "red");
-        colors.put("d", "light_purple");
-        colors.put("e", "yellow");
-        colors.put("f", "white");
-        return colors;
+
+    public enum Colors {
+
+        BLACK("0", "black"),
+        DARK_BLUE("1", "dark_blue"),
+        DARK_GREEN("2", "dark_green"),
+        DARK_AQUA("3", "dark_aqua"),
+        DARK_RED("4", "dark_red"),
+        DARK_PURPLE("5", "dark_purple"),
+        GOLD("6", "gold"),
+        GREY("7", "gray"),
+        DARK_GREY("8", "dark_gray"),
+        BLUE("9", "blue"),
+        GREEN("a", "green"),
+        AQUA("b", "aqua"),
+        RED("c", "red"),
+        LIGHT_PURPLE("d", "light_purple"),
+        YELLOW("e", "yellow"),
+        WHITE("f", "white");
+
+        private final String key;
+        private final String value;
+
+        Colors(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public static String[] getKeys() {
+            List<String> keys = new ArrayList<>();
+            for (Types types : Types.values()) {
+                keys.add(types.getKey());
+            }
+            return keys.toArray(new String[0]);
+        }
+
+        public String getValue() {
+            return value;
+        }
     }
 }

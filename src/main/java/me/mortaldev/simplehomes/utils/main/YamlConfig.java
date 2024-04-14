@@ -1,6 +1,7 @@
 package me.mortaldev.simplehomes.utils.main;
 
 import me.mortaldev.simplehomes.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -79,13 +80,14 @@ public class YamlConfig {
         if (!name.contains(".yml")){
             name = name.concat(".yml");
         }
-        InputStream stream = Main.getPlugin().getResource(name);
-        if (stream == null){
-            Main.getPlugin().getLogger().warning("Failed to load resource: " + name);
-            return;
-        }
-        File file = new File(Main.getPlugin().getDataFolder(), name);
+        InputStream stream = null;
         try {
+            stream = Main.getPlugin().getResource(name);
+            if (stream == null){
+                Main.getPlugin().getLogger().warning("Failed to load resource: " + name);
+                return;
+            }
+            File file = new File(Main.getPlugin().getDataFolder(), name);
             if (!file.exists()){
                 file.createNewFile();
             }
@@ -94,6 +96,14 @@ public class YamlConfig {
             outputStream.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {
+                    Bukkit.getLogger().warning("An exception has occurred: " + e);
+                }
+            }
         }
     }
 
